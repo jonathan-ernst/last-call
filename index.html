@@ -1,0 +1,525 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Last Call</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Unbounded:wght@500;800&family=Manrope:wght@400;600;700&family=JetBrains+Mono:wght@500;700&display=swap">
+<style>
+/* Layout: links der Tresen (Timer + Flasche im Spotlight), rechts die LED-Tanzfläche; auf dem Handy untereinander */
+:root{
+  --night:#0f0a17; --stage:#1a1226; --stage-2:#221833; --line:#33264a;
+  --text:#f3ecfa; --muted:#a898bd;
+  --laser:#ff3d9a; --ice:#3de0ff; --amber:#ffb547; --violet:#9b6bff;
+  --danger:#ff6b6b; --ok:#5cf2a6;
+  --display:"Unbounded","Arial Black",system-ui,sans-serif;
+  --body:"Manrope",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,monospace;
+  color-scheme:dark;
+}
+html{background:var(--night)}
+body{
+  font-family:var(--body);font-size:15px;line-height:1.5;color:var(--text);
+  background:
+    radial-gradient(900px 420px at 85% -8%, rgba(255,61,154,.16), transparent 60%),
+    radial-gradient(700px 420px at 0% 0%, rgba(61,224,255,.10), transparent 60%),
+    var(--night);
+  background-attachment:fixed;
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+  padding-block:28px 56px;
+}
+.wrap{max-width:1120px;margin:0 auto;display:grid;gap:28px}
+header{display:grid;gap:6px}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--ice)}
+h1{font-family:var(--display);font-weight:800;font-size:clamp(34px,6vw,58px);line-height:1;margin:0;letter-spacing:.02em;
+  text-shadow:0 0 22px rgba(255,61,154,.45)}
+h1 span{color:var(--laser)}
+.lede{color:var(--muted);max-width:60ch;margin:0;text-wrap:pretty}
+h2{font-family:var(--display);font-weight:500;font-size:15px;letter-spacing:.06em;text-transform:uppercase;margin:0}
+
+.main{display:grid;grid-template-columns:minmax(0,380px) minmax(0,1fr);gap:24px;align-items:start}
+@media (max-width:860px){.main{grid-template-columns:minmax(0,1fr)}}
+
+.panel{background:var(--stage);border:1px solid var(--line);border-radius:20px;padding:20px;display:grid;gap:18px}
+
+/* Tresen */
+.spot{position:relative;height:250px;display:grid;place-items:end center;border-radius:14px;overflow:hidden;
+  background:linear-gradient(180deg,var(--stage-2),var(--stage))}
+.spot::before{content:"";position:absolute;inset:-10% 20% 0 20%;
+  background:conic-gradient(from 180deg at 50% 0%, transparent 160deg, rgba(255,181,71,.20) 172deg, rgba(255,181,71,.28) 180deg, rgba(255,181,71,.20) 188deg, transparent 200deg);
+  pointer-events:none}
+.spot::after{content:"";position:absolute;left:18%;right:18%;bottom:10px;height:14px;border-radius:50%;
+  background:radial-gradient(closest-side,rgba(255,181,71,.35),transparent)}
+#stageBottle{position:relative;z-index:1;height:210px;margin-bottom:14px;display:block}
+#stageBottle svg{height:100%;width:auto;display:block}
+.spot.broken #stageBottle svg{filter:saturate(.6)}
+.clockrow{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.clock{font-family:var(--mono);font-weight:700;font-size:44px;line-height:1;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+.status{color:var(--muted);font-size:14px}
+.status strong{color:var(--text)}
+.progress{height:6px;border-radius:99px;background:var(--stage-2);overflow:hidden}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--ice),var(--laser));transition:width .25s linear}
+
+.label{font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.field{display:grid;gap:8px}
+.drinks{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}
+.chip{appearance:none;border:1px solid var(--line);background:var(--stage-2);color:var(--text);border-radius:12px;
+  padding:8px 4px 6px;display:grid;justify-items:center;gap:4px;cursor:pointer;font:600 12px/1.2 var(--body);transition:border-color .15s,background .15s}
+.chip svg{height:44px;width:auto}
+.chip:hover{border-color:var(--violet)}
+.chip[aria-pressed="true"]{border-color:var(--amber);background:rgba(255,181,71,.10);box-shadow:0 0 0 1px var(--amber) inset}
+.chip:focus-visible,.btn:focus-visible,.navbtn:focus-visible,input[type=range]:focus-visible{outline:2px solid var(--ice);outline-offset:2px}
+.durrow{display:flex;justify-content:space-between;align-items:baseline}
+.durval{font-family:var(--mono);font-weight:700;font-variant-numeric:tabular-nums}
+input[type=range]{width:100%;accent-color:var(--laser)}
+
+.btn{appearance:none;border:0;border-radius:999px;padding:14px 20px;font:700 15px/1 var(--body);cursor:pointer;color:#1a0b14;
+  background:linear-gradient(90deg,var(--amber),var(--laser));box-shadow:0 6px 24px rgba(255,61,154,.30)}
+.btn:hover{filter:brightness(1.08)}
+.btn.ghost{background:transparent;color:var(--text);border:1px solid var(--line);box-shadow:none}
+.btn.ghost:hover{border-color:var(--muted)}
+.btn.danger{background:var(--danger);color:#1a0b0b;box-shadow:none}
+.btnrow{display:flex;gap:8px;flex-wrap:wrap}
+.btnrow .btn{flex:1 1 140px}
+.confirm{display:grid;gap:10px;padding:14px;border-radius:14px;border:1px solid rgba(255,107,107,.4);background:rgba(255,107,107,.08)}
+.confirm p{margin:0}
+.result{padding:14px 16px;border-radius:14px;display:grid;gap:4px}
+.result.ok{background:rgba(92,242,166,.10);border:1px solid rgba(92,242,166,.35)}
+.result.bad{background:rgba(255,107,107,.08);border:1px solid rgba(255,107,107,.35)}
+.result strong{font-family:var(--display);font-weight:500;font-size:15px}
+.result span{color:var(--muted);font-size:14px}
+.hint{color:var(--muted);font-size:13px;margin:0}
+
+/* Tanzfläche */
+.floorhead{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.daynav{display:flex;align-items:center;gap:6px}
+.navbtn{appearance:none;width:34px;height:34px;border-radius:50%;border:1px solid var(--line);background:var(--stage-2);color:var(--text);cursor:pointer;font:700 16px/1 var(--body)}
+.navbtn:disabled{opacity:.35;cursor:default}
+.dayname{font-family:var(--mono);font-size:13px;min-width:9.5em;text-align:center}
+.floor{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:6px;padding:10px;border-radius:16px;background:#0a0710;border:1px solid var(--line);position:relative}
+.tile{aspect-ratio:1;border-radius:6px;position:relative;display:grid;place-items:end center;
+  background:color-mix(in srgb,var(--c) 12%,#0f0a17);
+  box-shadow:inset 0 0 16px color-mix(in srgb,var(--c) 28%,transparent);
+  animation:pulse 5s ease-in-out infinite;animation-delay:var(--d)}
+@keyframes pulse{0%,100%{background:color-mix(in srgb,var(--c) 9%,#0f0a17)}50%{background:color-mix(in srgb,var(--c) 32%,#0f0a17)}}
+.tile svg{height:84%;width:auto;margin-bottom:4%;filter:drop-shadow(0 0 6px color-mix(in srgb,var(--c) 70%,transparent))}
+.tile.example svg{opacity:.35;filter:none}
+.tile.new svg{animation:drop .7s cubic-bezier(.2,1.5,.4,1)}
+@keyframes drop{from{transform:translateY(-60%) scale(.8);opacity:0}to{transform:none;opacity:1}}
+.floornote{position:absolute;inset:auto 14px 14px 14px;padding:10px 12px;border-radius:10px;background:rgba(15,10,23,.86);border:1px solid var(--line);font-size:13px;color:var(--muted);text-align:center}
+.floornote b{color:var(--text)}
+.tag{display:inline-block;font-family:var(--mono);font-size:10px;letter-spacing:.1em;text-transform:uppercase;padding:2px 6px;border-radius:4px;background:var(--stage-2);color:var(--amber);margin-right:6px;vertical-align:1px}
+
+.stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+@media (max-width:520px){.stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{padding:12px;border-radius:12px;background:var(--stage-2);display:grid;gap:2px}
+.stat b{font-family:var(--mono);font-size:22px;font-variant-numeric:tabular-nums}
+.stat span{font-size:12px;color:var(--muted)}
+.shelf{display:flex;flex-wrap:wrap;gap:10px}
+.shelfitem{display:flex;align-items:center;gap:6px;padding:6px 10px 6px 6px;border-radius:10px;background:var(--stage-2);font-size:13px}
+.shelfitem svg{height:30px;width:auto}
+.shelfitem b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.shelfempty{color:var(--muted);font-size:13px;margin:0}
+footer{color:var(--muted);font-size:12px;font-family:var(--mono);text-align:center}
+
+@media (prefers-reduced-motion:reduce){
+  .tile,.tile.new svg{animation:none}
+  .progress i{transition:none}
+}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Fokus-Club · Einlass nur mit Konzentration</div>
+    <h1>LAST <span>CALL</span></h1>
+    <p class="lede">Wähl ein Getränk und starte die Session. Solange du in diesem Tab bleibst, wird deine Flasche abgefüllt. Wenn du für mehr als 10 Sekunden wegwechselst, zerbricht sie. Jede volle Flasche landet auf deiner Tanzfläche.</p>
+  </header>
+
+  <div class="main">
+    <section class="panel" aria-labelledby="barTitle">
+      <h2 id="barTitle">Am Tresen</h2>
+      <div class="spot" id="spot"><div id="stageBottle"></div></div>
+      <div class="clockrow">
+        <div class="clock" id="clock" aria-live="off">25:00</div>
+        <div class="status" id="status">Bereit zum Abfüllen</div>
+      </div>
+      <div class="progress" aria-hidden="true"><i id="bar"></i></div>
+
+      <div id="setup" class="field" style="gap:16px">
+        <div class="field">
+          <div class="label" id="drinkLabel">Getränk</div>
+          <div class="drinks" id="drinks" role="group" aria-labelledby="drinkLabel"></div>
+        </div>
+        <div class="field">
+          <div class="durrow"><label class="label" for="dur">Dauer</label><output class="durval" id="durOut" for="dur">25 Min</output></div>
+          <input type="range" id="dur" min="5" max="120" step="5" value="25">
+        </div>
+        <button class="btn" id="startBtn" type="button">Abfüllen starten</button>
+      </div>
+
+      <div id="running" hidden>
+        <button class="btn ghost" id="giveUpBtn" type="button" style="width:100%">Aufgeben</button>
+        <div class="confirm" id="confirm" hidden>
+          <p>Wirklich aufgeben? Die Flasche zerbricht dann.</p>
+          <div class="btnrow">
+            <button class="btn danger" id="confirmYes" type="button">Ja, aufgeben</button>
+            <button class="btn ghost" id="confirmNo" type="button">Weiter fokussieren</button>
+          </div>
+        </div>
+      </div>
+
+      <div id="result" class="result" hidden></div>
+      <p class="hint" id="hint">Tipp: Lass den Tab offen und arbeite daneben auf Papier oder in einem zweiten Fenster. Gezählt wird nur, ob dieser Tab sichtbar bleibt.</p>
+    </section>
+
+    <section class="panel" aria-labelledby="floorTitle">
+      <div class="floorhead">
+        <h2 id="floorTitle">Tanzfläche</h2>
+        <div class="daynav">
+          <button class="navbtn" id="prevDay" type="button" aria-label="Vorheriger Tag">‹</button>
+          <span class="dayname" id="dayName">Heute</span>
+          <button class="navbtn" id="nextDay" type="button" aria-label="Nächster Tag">›</button>
+        </div>
+      </div>
+      <div class="floor" id="floor"></div>
+      <div class="stats">
+        <div class="stat"><b id="sMin">0</b><span>Minuten an diesem Tag</span></div>
+        <div class="stat"><b id="sBottles">0</b><span>Volle Flaschen</span></div>
+        <div class="stat"><b id="sWeek">0</b><span>Minuten in 7 Tagen</span></div>
+        <div class="stat"><b id="sStreak">0</b><span>Tage in Folge</span></div>
+      </div>
+      <div class="field">
+        <div class="label">Deine Sammlung</div>
+        <div class="shelf" id="shelf"></div>
+      </div>
+    </section>
+  </div>
+  <footer id="sync">Gespeichert in diesem Browser</footer>
+</div>
+
+<script>
+(() => {
+  const GRACE = 10000;
+  const TILE_COLORS = ["#ff3d9a", "#3de0ff", "#ffb547", "#9b6bff"];
+  const DRINKS = [
+    { id: "bier", name: "Bier", glass: "#7a4314", go: .7, liquid: "#f4a62a", cap: "#d4d4d8", label: "#f1e3c2", p: { top: 22, nb: 44, sh: 60, bw: 12, nw: 4.5, r: 4 } },
+    { id: "rotwein", name: "Rotwein", glass: "#23402b", go: .75, liquid: "#8c1238", cap: "#7a0f30", label: "#efe6d4", p: { top: 4, nb: 34, sh: 46, bw: 11, nw: 3.6, r: 3 }, foil: true },
+    { id: "champagner", name: "Champagner", glass: "#1f3a26", go: .75, liquid: "#f5e3a3", cap: "#e0b84c", label: "#16161a", p: { top: 4, nb: 30, sh: 54, bw: 13, nw: 4.2, r: 5 }, foil: true },
+    { id: "vodka", name: "Vodka", glass: "#cfe7f5", go: .28, liquid: "#e3f3ff", cap: "#c0c6cc", label: "#c8102e", p: { top: 8, nb: 30, sh: 42, bw: 11, nw: 4, r: 3 } },
+    { id: "gin", name: "Gin", glass: "#7fcfc4", go: .35, liquid: "#c9f7f0", cap: "#2a2a2e", label: "#f4efe3", p: { top: 14, nb: 30, sh: 37, bw: 13, nw: 5, r: 2 }, sq: true },
+    { id: "tequila", name: "Tequila", glass: "#d8eef0", go: .3, liquid: "#f0bd57", cap: "#a0703c", label: "#2a6b4f", p: { top: 22, nb: 40, sh: 54, bw: 14, nw: 4.5, r: 6 } },
+    { id: "whisky", name: "Whisky", glass: "#c9b48a", go: .3, liquid: "#b8641d", cap: "#3a2414", label: "#16161a", p: { top: 16, nb: 32, sh: 40, bw: 14, nw: 4.5, r: 2 }, sq: true },
+    { id: "rum", name: "Rum", glass: "#5a3215", go: .7, liquid: "#9a4a14", cap: "#c9a25a", label: "#e9d8b0", p: { top: 14, nb: 36, sh: 50, bw: 13, nw: 4.5, r: 5 } },
+  ];
+  const byId = Object.fromEntries(DRINKS.map(d => [d.id, d]));
+  const $ = id => document.getElementById(id);
+
+  // ---------- Flaschen zeichnen ----------
+  let seq = 0;
+  function bodyPath({ top, nb, sh, bw, nw, r }, sq) {
+    const c = 20, b = 96;
+    const rs = sq ? `L${c + bw} ${sh}` : `Q${c + bw} ${nb} ${c + bw} ${sh}`;
+    const ls = sq ? `L${c - nw} ${nb}` : `Q${c - bw} ${nb} ${c - nw} ${nb}`;
+    return `M${c - nw} ${top} L${c + nw} ${top} L${c + nw} ${nb} ${rs} L${c + bw} ${b - r} Q${c + bw} ${b} ${c + bw - r} ${b} L${c - bw + r} ${b} Q${c - bw} ${b} ${c - bw} ${b - r} L${c - bw} ${sh} ${ls} Z`;
+  }
+  function liquidY(d, fill) { return 96 - fill * (96 - (d.p.nb + 3)); }
+  function bottleSVG(d, fill = 1) {
+    const id = "clip" + (++seq), p = d.p, path = bodyPath(p, d.sq);
+    const ly = liquidY(d, fill);
+    const lblY = p.sh + (96 - p.sh) * .32, lblH = (96 - p.sh) * .3;
+    const foil = d.foil ? `<rect x="${20 - p.nw - .8}" y="${p.top - 2}" width="${2 * p.nw + 1.6}" height="${(p.nb - p.top) * .55}" rx="1" fill="${d.cap}"/>` : "";
+    return `<svg viewBox="0 0 40 100" aria-hidden="true"><defs><clipPath id="${id}"><path d="${path}"/></clipPath></defs>
+      <path d="${path}" fill="${d.glass}" fill-opacity="${d.go}"/>
+      <rect data-liquid x="0" y="${ly}" width="40" height="${100 - ly}" fill="${d.liquid}" clip-path="url(#${id})"/>
+      <rect x="${20 - p.bw + 2}" y="${lblY}" width="${2 * p.bw - 4}" height="${lblH}" rx="1.5" fill="${d.label}" fill-opacity=".9"/>
+      <path d="M${20 - p.bw + 3} ${p.sh + 4} L${20 - p.bw + 3} 89" stroke="#fff" stroke-opacity=".35" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+      <path d="${path}" fill="none" stroke="#fff" stroke-opacity=".22" stroke-width=".8"/>
+      ${foil}<rect x="${20 - p.nw - .6}" y="${p.top - 3}" width="${2 * p.nw + 1.2}" height="5" rx="1" fill="${d.cap}"/></svg>`;
+  }
+  function brokenSVG(d) {
+    const g = `fill="${d.glass}" fill-opacity="${Math.max(d.go, .55)}" stroke="#fff" stroke-opacity=".25" stroke-width=".6"`;
+    return `<svg viewBox="0 0 40 100" aria-hidden="true">
+      <ellipse cx="20" cy="94" rx="17" ry="3.6" fill="${d.liquid}" fill-opacity=".6"/>
+      <path d="M6 95 L10 83 L14 95Z" ${g}/><path d="M16 95 L20 76 L24 87 L22 95Z" ${g}/>
+      <path d="M26 95 L30 85 L34 95Z" ${g}/>
+      <g transform="rotate(-38 28 84)"><rect x="26" y="70" width="${2 * d.p.nw}" height="12" ${g}/></g></svg>`;
+  }
+
+  // ---------- Daten ----------
+  const sessions = new Map();
+  let store = null;
+  const pad = n => String(n).padStart(2, "0");
+  const dayKey = t => { const d = new Date(t); return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; };
+  const newId = () => "s" + Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+
+  function loadLocal() {
+    try { JSON.parse(localStorage.getItem("lastcall.sessions") || "[]").forEach(s => sessions.set(s.id, s)); } catch {}
+  }
+  function saveLocal() {
+    try { localStorage.setItem("lastcall.sessions", JSON.stringify([...sessions.values()])); } catch {}
+  }
+  function record(s) {
+    sessions.set(s.id, s);
+    saveLocal();
+    if (store) { const { id, ...rest } = s; store.doc(id).set(rest).catch(() => {}); }
+  }
+  async function connect() {
+    try {
+      if (!window.claude?.use) return;
+      const [db, user] = await Promise.all([claude.use("db"), claude.use("user")]);
+      if (!db || !user) return;
+      const uid = await user.id();
+      if (!uid) return;
+      store = db.collection("data/users/" + uid);
+      let first = true;
+      store.onSnapshot(snap => {
+        const remote = new Set();
+        snap.docs.forEach(d => { const v = d.data(); if (v && v.drink) { remote.add(d.id); sessions.set(d.id, { ...v, id: d.id }); } });
+        if (first) {
+          first = false;
+          for (const s of sessions.values()) if (!remote.has(s.id)) { const { id, ...rest } = s; store.doc(id).set(rest).catch(() => {}); }
+        }
+        saveLocal();
+        $("sync").textContent = "Gespeichert in deinem Claude-Konto";
+        renderFloor();
+      }, () => { $("sync").textContent = "Gespeichert in diesem Browser"; });
+    } catch {}
+  }
+
+  // ---------- Zustand ----------
+  let selected = "champagner";
+  try { selected = byId[localStorage.getItem("lastcall.drink")] ? localStorage.getItem("lastcall.drink") : selected; } catch {}
+  let active = null, lastNew = null, viewDay = dayKey(Date.now()), wakeLock = null, actx = null, lastSave = 0;
+  try { active = JSON.parse(localStorage.getItem("lastcall.active") || "null"); } catch {}
+  const saveActive = () => { try { active ? localStorage.setItem("lastcall.active", JSON.stringify(active)) : localStorage.removeItem("lastcall.active"); } catch {} };
+
+  // ---------- Tresen ----------
+  function renderChips() {
+    $("drinks").innerHTML = DRINKS.map(d =>
+      `<button type="button" class="chip" id="drink-${d.id}" data-id="${d.id}" aria-pressed="${d.id === selected}">${bottleSVG(d, 1)}${d.name}</button>`).join("");
+  }
+  function renderStage(fill, broken) {
+    const d = byId[active ? active.drink : selected];
+    $("stageBottle").innerHTML = broken ? brokenSVG(d) : bottleSVG(d, fill);
+    $("spot").classList.toggle("broken", !!broken);
+  }
+  function setFill(fill) {
+    const d = byId[active.drink], r = $("stageBottle").querySelector("[data-liquid]");
+    if (r) { const y = liquidY(d, fill); r.setAttribute("y", y); r.setAttribute("height", 100 - y); }
+    $("bar").style.width = (fill * 100).toFixed(2) + "%";
+  }
+  const fmt = ms => { const s = Math.max(0, Math.ceil(ms / 1000)); return `${pad(Math.floor(s / 60))}:${pad(s % 60)}`; };
+  function showResult(ok, title, text) {
+    const el = $("result");
+    el.className = "result " + (ok ? "ok" : "bad");
+    el.innerHTML = `<strong></strong><span></span>`;
+    el.querySelector("strong").textContent = title;
+    el.querySelector("span").textContent = text;
+    el.hidden = false;
+  }
+  function setMode(running) {
+    $("setup").hidden = running;
+    $("running").hidden = !running;
+    $("confirm").hidden = true;
+    $("giveUpBtn").hidden = false;
+    $("hint").hidden = running ? false : $("hint").hidden;
+  }
+  function idleClock() {
+    const m = +$("dur").value;
+    $("clock").textContent = fmt(m * 60000);
+    $("bar").style.width = "0%";
+  }
+
+  async function lockScreen() {
+    try { wakeLock = await navigator.wakeLock?.request("screen"); } catch {}
+  }
+  function unlockScreen() { try { wakeLock?.release(); } catch {} wakeLock = null; }
+  function clink() {
+    if (!actx) return;
+    try {
+      const t = actx.currentTime;
+      [2093, 3136, 4186].forEach((f, i) => {
+        const o = actx.createOscillator(), g = actx.createGain();
+        o.type = "sine"; o.frequency.value = f;
+        g.gain.setValueAtTime(0, t + i * .06);
+        g.gain.linearRampToValueAtTime(.12, t + i * .06 + .005);
+        g.gain.exponentialRampToValueAtTime(.0001, t + i * .06 + .9);
+        o.connect(g).connect(actx.destination); o.start(t + i * .06); o.stop(t + i * .06 + 1);
+      });
+    } catch {}
+  }
+
+  function start() {
+    try { actx = actx || new (window.AudioContext || window.webkitAudioContext)(); } catch {}
+    const minutes = +$("dur").value, now = Date.now();
+    active = { id: newId(), drink: selected, minutes, startedAt: now, endAt: now + minutes * 60000, hiddenAt: null, lastSeen: now };
+    saveActive();
+    $("result").hidden = true;
+    setMode(true);
+    renderStage(0);
+    $("status").innerHTML = `<strong>${byId[selected].name}</strong> wird abgefüllt`;
+    lockScreen();
+    tick();
+  }
+  function finish(ok, reason, awayMs) {
+    if (!active) return;
+    const d = byId[active.drink], now = Date.now();
+    const s = { id: active.id, drink: active.drink, minutes: active.minutes, startedAt: active.startedAt, endedAt: now, ok, reason: reason || null };
+    record(s);
+    active = null; saveActive(); unlockScreen();
+    setMode(false);
+    viewDay = dayKey(s.startedAt);
+    if (ok) {
+      lastNew = s.id;
+      renderStage(1);
+      $("bar").style.width = "100%";
+      $("clock").textContent = "00:00";
+      $("status").innerHTML = "<strong>Prost!</strong>";
+      showResult(true, `${d.name} steht auf der Tanzfläche`, `${s.minutes} Minuten durchgezogen. Bereit für die nächste Runde?`);
+      clink();
+    } else {
+      selected = s.drink;
+      renderStage(0, true);
+      $("status").textContent = "Zerbrochen";
+      $("bar").style.width = "0%";
+      const why = reason === "gaveup" ? "Du hast aufgegeben."
+        : `Du warst ${awayMs ? Math.round(awayMs / 1000) + " Sekunden" : "zu lange"} weg.`;
+      showResult(false, `${d.name} ist zerbrochen`, `${why} Die Scherben bleiben auf der Tanzfläche liegen.`);
+    }
+    renderChips();
+    renderFloor();
+  }
+  function tick() {
+    if (!active || document.hidden) return;
+    const now = Date.now();
+    if (now >= active.endAt) return finish(true);
+    setFill((now - active.startedAt) / (active.endAt - active.startedAt));
+    $("clock").textContent = fmt(active.endAt - now);
+    if (now - lastSave > 1000) { active.lastSeen = now; saveActive(); lastSave = now; }
+  }
+
+  document.addEventListener("visibilitychange", () => {
+    if (!active) return;
+    if (document.hidden) { active.hiddenAt = Date.now(); saveActive(); return; }
+    const away = active.hiddenAt ? Date.now() - active.hiddenAt : 0;
+    active.hiddenAt = null;
+    if (away > GRACE) finish(false, "left", away);
+    else { saveActive(); tick(); }
+  });
+
+  // ---------- Tanzfläche ----------
+  const EXAMPLES = ["bier", "champagner", "rotwein", "vodka", "gin"];
+  function dayLabel(key) {
+    const today = dayKey(Date.now()), yest = dayKey(Date.now() - 864e5);
+    if (key === today) return "Heute";
+    if (key === yest) return "Gestern";
+    const [y, m, d] = key.split("-").map(Number);
+    return new Date(y, m - 1, d).toLocaleDateString("de-DE", { weekday: "short", day: "numeric", month: "short" });
+  }
+  function shiftDay(key, delta) {
+    const [y, m, d] = key.split("-").map(Number);
+    return dayKey(new Date(y, m - 1, d + delta).getTime());
+  }
+  function renderFloor() {
+    const all = [...sessions.values()].sort((a, b) => a.startedAt - b.startedAt);
+    const today = dayKey(Date.now());
+    const items = all.filter(s => dayKey(s.startedAt) === viewDay);
+    const examples = all.length === 0;
+    const n = Math.max(36, Math.ceil(items.length / 6) * 6);
+    let html = "";
+    for (let i = 0; i < n; i++) {
+      const c = TILE_COLORS[(i * 7 + Math.floor(i / 6)) % TILE_COLORS.length];
+      const delay = `${-((i * 1.37) % 5).toFixed(2)}s`;
+      const s = items[i];
+      let inner = "", cls = "tile", title = "";
+      if (s && byId[s.drink]) {
+        const d = byId[s.drink];
+        const time = new Date(s.startedAt).toLocaleTimeString("de-DE", { hour: "2-digit", minute: "2-digit" });
+        title = `${d.name}, ${s.minutes} Minuten, ${time} Uhr${s.ok ? "" : ", zerbrochen"}`;
+        inner = s.ok ? bottleSVG(d, 1) : brokenSVG(d);
+        if (s.id === lastNew) cls += " new";
+      } else if (examples && i < EXAMPLES.length) {
+        cls += " example";
+        inner = bottleSVG(byId[EXAMPLES[i]], 1);
+      }
+      html += `<div class="${cls}" style="--c:${c};--d:${delay}"${title ? ` role="img" aria-label="${title}" title="${title}"` : ""}>${inner}</div>`;
+    }
+    if (examples) html += `<div class="floornote"><span class="tag">Beispiel</span>So sieht deine Tanzfläche aus. <b>Starte links deine erste Session.</b></div>`;
+    else if (!items.length) html += `<div class="floornote">${viewDay === today ? "Heute steht noch nichts auf der Tanzfläche." : "An diesem Tag war die Tanzfläche leer."}</div>`;
+    $("floor").innerHTML = html;
+    lastNew = null;
+
+    $("dayName").textContent = dayLabel(viewDay);
+    $("nextDay").disabled = viewDay >= today;
+
+    const okItems = items.filter(s => s.ok);
+    $("sMin").textContent = okItems.reduce((a, s) => a + s.minutes, 0);
+    $("sBottles").textContent = okItems.length;
+    const weekStart = shiftDay(today, -6);
+    $("sWeek").textContent = all.filter(s => s.ok && dayKey(s.startedAt) >= weekStart).reduce((a, s) => a + s.minutes, 0);
+    const okDays = new Set(all.filter(s => s.ok).map(s => dayKey(s.startedAt)));
+    let streak = 0, k = okDays.has(today) ? today : shiftDay(today, -1);
+    while (okDays.has(k)) { streak++; k = shiftDay(k, -1); }
+    $("sStreak").textContent = streak;
+
+    const counts = {};
+    all.filter(s => s.ok).forEach(s => counts[s.drink] = (counts[s.drink] || 0) + 1);
+    const shelf = DRINKS.filter(d => counts[d.id]);
+    $("shelf").innerHTML = shelf.length
+      ? shelf.map(d => `<div class="shelfitem" title="${d.name}">${bottleSVG(d, 1)}<span>${d.name}</span><b>×${counts[d.id]}</b></div>`).join("")
+      : `<p class="shelfempty">Noch keine vollen Flaschen. Jede abgeschlossene Session kommt hier ins Regal.</p>`;
+  }
+
+  // ---------- Events ----------
+  $("drinks").addEventListener("click", e => {
+    const b = e.target.closest(".chip"); if (!b || active) return;
+    selected = b.dataset.id;
+    try { localStorage.setItem("lastcall.drink", selected); } catch {}
+    document.querySelectorAll(".chip").forEach(c => c.setAttribute("aria-pressed", c.dataset.id === selected));
+    $("result").hidden = true;
+    $("status").textContent = "Bereit zum Abfüllen";
+    renderStage(0);
+    idleClock();
+  });
+  $("dur").addEventListener("input", () => { $("durOut").textContent = $("dur").value + " Min"; if (!active) { $("result").hidden = true; idleClock(); } });
+  $("startBtn").addEventListener("click", start);
+  $("giveUpBtn").addEventListener("click", () => { $("giveUpBtn").hidden = true; $("confirm").hidden = false; $("confirmNo").focus(); });
+  $("confirmNo").addEventListener("click", () => { $("confirm").hidden = true; $("giveUpBtn").hidden = false; });
+  $("confirmYes").addEventListener("click", () => finish(false, "gaveup"));
+  $("prevDay").addEventListener("click", () => { viewDay = shiftDay(viewDay, -1); renderFloor(); });
+  $("nextDay").addEventListener("click", () => { viewDay = shiftDay(viewDay, 1); renderFloor(); });
+
+  // ---------- Start ----------
+  loadLocal();
+  renderChips();
+  $("durOut").textContent = $("dur").value + " Min";
+  if (active && byId[active.drink]) {
+    // Seite wurde neu geladen: kurze Unterbrechung ist ok, längere zählt als Verlassen
+    const away = Date.now() - (active.hiddenAt || active.lastSeen || active.startedAt);
+    selected = active.drink;
+    renderChips();
+    if (away > GRACE) { finish(false, "left", away); }
+    else {
+      active.hiddenAt = null;
+      setMode(true); renderStage(0);
+      $("status").innerHTML = `<strong>${byId[active.drink].name}</strong> wird abgefüllt`;
+      lockScreen(); tick();
+    }
+  } else {
+    active = null;
+    renderStage(0);
+    idleClock();
+  }
+  renderFloor();
+  setInterval(tick, 250);
+  connect();
+})();
+</script>
+</body>
+</html>
